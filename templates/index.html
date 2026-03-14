@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Empathy Engine — Emotion-Aware TTS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════ HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🎙</span>
+        <div>
+          <span class="logo-title">Empathy Engine</span>
+          <span class="logo-sub">Emotion-Aware Text-to-Speech</span>
+        </div>
+      </div>
+      <div class="header-badge">AI Challenge · 2025</div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════ LAYOUT -->
+  <main class="layout">
+
+    <!-- ── LEFT: INPUT + OUTPUT ────────────────────────────────────────────── -->
+    <section class="main-panel">
+
+      <!-- Input card -->
+      <div class="card input-card">
+        <label class="card-label" for="user-text">Enter your text</label>
+        <textarea
+          id="user-text"
+          class="text-input"
+          rows="5"
+          maxlength="1000"
+          placeholder="Type or paste any sentence here…
+e.g. "I can't believe this happened — it's absolutely incredible!" "
+        ></textarea>
+        <div class="input-footer">
+          <span id="char-count" class="char-count">0 / 1000</span>
+          <button id="generate-btn" class="btn-generate" onclick="handleGenerate()">
+            <span class="btn-icon">▶</span> Generate Speech
+          </button>
+        </div>
+      </div>
+
+      <!-- Emotion result banner (hidden until result) -->
+      <div id="emotion-banner" class="emotion-banner hidden">
+        <div class="emotion-pill">
+          <span id="emotion-emoji" class="emotion-emoji">😊</span>
+          <span id="emotion-label" class="emotion-label">Joy</span>
+          <span id="emotion-conf" class="emotion-conf">—</span>
+        </div>
+        <div id="voice-params" class="voice-params">
+          <span class="param-chip" id="chip-pitch">pitch —</span>
+          <span class="param-chip" id="chip-rate">rate —</span>
+          <span class="param-chip" id="chip-volume">volume —</span>
+        </div>
+      </div>
+
+      <!-- Audio comparison -->
+      <div id="audio-section" class="audio-section hidden">
+
+        <div class="audio-card audio-before">
+          <div class="audio-card-header">
+            <span class="audio-badge before">BEFORE</span>
+            <span class="audio-title">Normal TTS</span>
+            <span class="audio-desc">Flat, unmodulated speech</span>
+          </div>
+          <audio id="player-before" controls class="audio-player">
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+
+        <div class="audio-divider">
+          <span>VS</span>
+        </div>
+
+        <div class="audio-card audio-after">
+          <div class="audio-card-header">
+            <span class="audio-badge after">AFTER</span>
+            <span class="audio-title">Emotion-Aware TTS</span>
+            <span class="audio-desc">Pitch · Rate · Volume modulated</span>
+          </div>
+          <audio id="player-after" controls class="audio-player">
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+
+      </div>
+
+      <!-- SSML code block -->
+      <div id="ssml-block" class="ssml-block hidden">
+        <div class="ssml-header">
+          <span class="ssml-label">Generated SSML</span>
+          <button class="btn-copy" onclick="copySSML()">Copy</button>
+        </div>
+        <pre id="ssml-content" class="ssml-code"></pre>
+      </div>
+
+      <!-- Score breakdown -->
+      <div id="scores-block" class="scores-block hidden">
+        <div class="scores-header">Raw Emotion Scores</div>
+        <div id="scores-list" class="scores-list"></div>
+      </div>
+
+      <!-- Error display -->
+      <div id="error-banner" class="error-banner hidden"></div>
+
+    </section>
+
+    <!-- ── RIGHT: SIDEBAR ──────────────────────────────────────────────────── -->
+    <aside class="sidebar">
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-heading">How It Works</h3>
+        <ol class="pipeline-list">
+          <li><span class="step-num">01</span><span>Text is fed to a HuggingFace DistilRoBERTa emotion classifier</span></li>
+          <li><span class="step-num">02</span><span>The dominant emotion is mapped to pitch, rate &amp; volume params</span></li>
+          <li><span class="step-num">03</span><span>SSML markup encodes the parameters for the TTS engine</span></li>
+          <li><span class="step-num">04</span><span>pydub post-processes the audio to apply the modulation</span></li>
+          <li><span class="step-num">05</span><span>Both before/after files are returned for side-by-side comparison</span></li>
+        </ol>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-heading">Voice Parameters</h3>
+        <div class="fact-list">
+          <div class="fact-item">
+            <span class="fact-icon">🎵</span>
+            <div><strong>Pitch</strong> controls how high or low the voice sounds. Higher pitch signals excitement; lower pitch signals gravity or frustration.</div>
+          </div>
+          <div class="fact-item">
+            <span class="fact-icon">⏱️</span>
+            <div><strong>Rate</strong> controls how fast speech is spoken. Fast rate energises; slow rate conveys weight or concern.</div>
+          </div>
+          <div class="fact-item">
+            <span class="fact-icon">🔊</span>
+            <div><strong>Volume</strong> controls loudness. Louder speech can convey urgency; softer speech conveys empathy.</div>
+          </div>
+          <div class="fact-item">
+            <span class="fact-icon">⏸️</span>
+            <div><strong>Pauses</strong> inserted via SSML <code>&lt;break&gt;</code> tags add drama and let emotional weight land.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-heading">Emotion → Voice Map</h3>
+        <table class="mapping-table">
+          <thead>
+            <tr><th>Emotion</th><th>Pitch</th><th>Rate</th><th>Vol</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>😊 Joy</td><td class="pos">+20%</td><td>fast</td><td>med</td></tr>
+            <tr><td>😐 Neutral</td><td>def</td><td>med</td><td>med</td></tr>
+            <tr><td>😤 Frustrated</td><td class="neg">-15%</td><td>slow</td><td>loud</td></tr>
+            <tr><td>😲 Surprised</td><td class="pos">+30%</td><td>fast</td><td>loud</td></tr>
+            <tr><td>😟 Concerned</td><td class="neg">-10%</td><td>slow</td><td>soft</td></tr>
+            <tr><td>🤔 Inquisitive</td><td class="pos">+10%</td><td>med</td><td>med</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-heading">Try These Samples</h3>
+        <div class="sample-list">
+          <button class="sample-btn" onclick="setSample(this)">This is absolutely incredible — I can't believe it worked!</button>
+          <button class="sample-btn" onclick="setSample(this)">Nothing ever goes right. Everything is broken again.</button>
+          <button class="sample-btn" onclick="setSample(this)">The quarterly report is ready for your review.</button>
+          <button class="sample-btn" onclick="setSample(this)">Wait — what just happened? Did you see that?!</button>
+          <button class="sample-btn" onclick="setSample(this)">I'm a bit worried about the patient's recovery timeline.</button>
+          <button class="sample-btn" onclick="setSample(this)">Could you explain how the new authentication flow works?</button>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════ FOOTER -->
+  <footer class="site-footer">
+    Empathy Engine · Built for the AI Engineering Challenge 2025 ·
+    Powered by HuggingFace Transformers + gTTS + pydub
+  </footer>
+
+  <!-- ═══════════════════════════════════════════════════════════════ SCRIPTS -->
+  <script>
+    // ── char counter ──────────────────────────────────────────────────────────
+    const ta = document.getElementById('user-text');
+    const counter = document.getElementById('char-count');
+    ta.addEventListener('input', () => {
+      counter.textContent = `${ta.value.length} / 1000`;
+    });
+
+    // ── sample fill ───────────────────────────────────────────────────────────
+    function setSample(btn) {
+      ta.value = btn.textContent.trim();
+      counter.textContent = `${ta.value.length} / 1000`;
+      ta.focus();
+    }
+
+    // ── copy SSML ─────────────────────────────────────────────────────────────
+    function copySSML() {
+      const code = document.getElementById('ssml-content').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.querySelector('.btn-copy');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
+    }
+
+    // ── main generate handler ─────────────────────────────────────────────────
+    async function handleGenerate() {
+      const text = ta.value.trim();
+      if (!text) { showError('Please enter some text first.'); return; }
+
+      setLoading(true);
+      hideAll();
+
+      try {
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+
+        if (data.error) { showError(data.error); return; }
+
+        renderResult(data);
+      } catch (err) {
+        showError('Network error – is the server running?');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ── render result ─────────────────────────────────────────────────────────
+    function renderResult(d) {
+      // Emotion banner
+      const banner = document.getElementById('emotion-banner');
+      banner.style.setProperty('--emotion-color', d.color);
+      document.getElementById('emotion-emoji').textContent  = d.emoji;
+      document.getElementById('emotion-label').textContent  = d.label;
+      document.getElementById('emotion-conf').textContent   = `${d.confidence} confidence`;
+      document.getElementById('chip-pitch').textContent     = `pitch ${d.pitch}`;
+      document.getElementById('chip-rate').textContent      = `rate ${d.rate}`;
+      document.getElementById('chip-volume').textContent    = `volume ${d.volume}`;
+      show(banner);
+
+      // Audio players
+      document.getElementById('player-before').src = d.audio_before;
+      document.getElementById('player-after').src  = d.audio_after;
+      show(document.getElementById('audio-section'));
+
+      // SSML block
+      document.getElementById('ssml-content').textContent = d.ssml;
+      show(document.getElementById('ssml-block'));
+
+      // Scores
+      const scoresList = document.getElementById('scores-list');
+      scoresList.innerHTML = d.all_scores.map(s => `
+        <div class="score-row">
+          <span class="score-name">${s.label}</span>
+          <div class="score-bar-wrap">
+            <div class="score-bar" style="width:${s.score_pct}%"></div>
+          </div>
+          <span class="score-pct">${s.score_pct}%</span>
+        </div>
+      `).join('');
+      show(document.getElementById('scores-block'));
+    }
+
+    // ── helpers ───────────────────────────────────────────────────────────────
+    function setLoading(on) {
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = on;
+      btn.innerHTML = on
+        ? '<span class="spinner"></span> Processing…'
+        : '<span class="btn-icon">▶</span> Generate Speech';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-banner');
+      el.textContent = '⚠ ' + msg;
+      show(el);
+    }
+
+    function hideAll() {
+      ['emotion-banner','audio-section','ssml-block','scores-block','error-banner']
+        .forEach(id => hide(document.getElementById(id)));
+    }
+
+    function show(el) { el.classList.remove('hidden'); }
+    function hide(el) { el.classList.add('hidden'); }
+
+    // Allow Ctrl+Enter / Cmd+Enter to submit
+    ta.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleGenerate();
+    });
+  </script>
+</body>
+</html>
