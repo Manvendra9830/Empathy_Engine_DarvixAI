@@ -1,16 +1,13 @@
-# ── Web framework ─────────────────────────────────────────────────────────────
+--extra-index-url https://download.pytorch.org/whl/cpu
 flask>=3.0.0
 gunicorn>=21.2.0
 
-# ── Emotion classification ─────────────────────────────────────────────────────
 transformers>=4.40.0
-torch>=2.2.0              # CPU build; swap for torch+cu118 etc. for GPU
+torch==2.2.2+cpu             # CPU build; swap for torch+cu118 etc. for GPU
 # accelerate>=0.27.0      # Optional: speeds up model loading on GPU
 
-# ── Text-to-Speech ─────────────────────────────────────────────────────────────
 gTTS>=2.5.0
 
-# ── Audio post-processing (pitch / rate / volume modulation) ───────────────────
 pydub>=0.25.1
 # ffmpeg must also be installed at the OS level:
 #   Ubuntu/Debian: sudo apt-get install ffmpeg
