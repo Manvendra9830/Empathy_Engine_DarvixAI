@@ -130,8 +130,12 @@ def health():
 if __name__ == "__main__":
     # Ensure the audio output directory exists before the first request
     utils.ensure_audio_dir(app.static_folder)
-    logger.info(
-        "Starting Empathy Engine on http://%s:%d",
-        config.HOST, config.PORT
-    )
-    app.run(host=config.HOST, port=config.PORT, debug=config.DEBUG)
+
+    # ── Render port configuration ─────────────────────────────────────────────
+    # Use the port assigned by Render; fallback to 5000 for local use
+    port = int(os.environ.get("PORT", 5000))
+
+    logger.info("Starting Empathy Engine on port %d", port)
+    
+    # host must be "0.0.0.0" for Render; debug mode as per config
+    app.run(host="0.0.0.0", port=port, debug=config.DEBUG)
