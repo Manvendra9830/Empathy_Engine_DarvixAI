@@ -19,42 +19,38 @@ logger = logging.getLogger(__name__)
 
 def get_voice_params(emotion: str, confidence: float = 1.0) -> Dict:
     """
-    Return vocal parameters for the given *emotion*.
+    Return vocal parameters for the given *emotion*, scaled by detection confidence.
 
     Parameters
     ----------
     emotion : str
         Normalised emotion label (must be a key in EMOTION_VOICE_MAP).
     confidence : float
-        Detection confidence [0, 1].  Used for *intensity scaling*:
-        at confidence < 0.55 the parameters are blended toward neutral so that
-        low-confidence predictions don't produce jarring speech.
+        Detection confidence [0, 1]. Used for intensity scaling:
+        pitch = base_pitch * confidence
+        rate = base_rate * confidence
 
     Returns
     -------
     params : dict
-        A copy of the voice parameter dict with keys:
-        pitch, rate, volume, pause, label, emoji, color.
+        A copy of the voice parameter dict with scaled pitch/rate as strings.
     """
-    params = dict(EMOTION_VOICE_MAP.get(emotion, EMOTION_VOICE_MAP["neutral"]))
+    config_params = EMOTION_VOICE_MAP.get(emotion, EMOTION_VOICE_MAP["neutral"])
+    
+    # Create a copy so we don't modify the original config
+    params = dict(config_params)
 
-    # ── Intensity scaling ──────────────────────────────────────────────────────
-    # When confidence is below the threshold, soften the pitch modulation so
-    # that borderline detections don't sound over-the-top.
-    CONFIDENCE_THRESHOLD = 0.55
-    if confidence < CONFIDENCE_THRESHOLD and params["pitch"] not in ("default",):
-        try:
-            pct_str = params["pitch"]          # e.g. "+20%"
-            sign    = 1 if pct_str[0] == "+" else -1
-            value   = float(pct_str.replace("%", "").replace("+", "").replace("-", ""))
-            # Scale down by the ratio of confidence to threshold
-            scaled  = value * (confidence / CONFIDENCE_THRESHOLD)
-            params["pitch"] = f"{'+' if sign > 0 else '-'}{scaled:.0f}%"
-        except (ValueError, IndexError):
-            pass  # If parsing fails just keep the original value
+    # ── Confidence-based Intensity Scaling ─────────────────────────────────────
+    # Multiply numeric base values by confidence and format as SSML strings
+    pitch_scaled = params["pitch"] * confidence
+    rate_scaled  = params["rate"] * confidence
+
+    # Update params with formatted strings e.g. "+6.5%"
+    params["pitch"] = f"{pitch_scaled:+.1f}%"
+    params["rate"]  = f"{rate_scaled:+.1f}%"
 
     logger.debug(
-        "Voice params for emotion=%s (conf=%.2f): %s",
-        emotion, confidence, params
+        "Scaled voice params for emotion=%s (conf=%.2f): pitch=%s, rate=%s",
+        emotion, confidence, params["pitch"], params["rate"]
     )
     return params

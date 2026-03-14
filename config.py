@@ -1,15 +1,12 @@
 """
 config.py - Central configuration for the Empathy Engine
-All constants, model names, and emotion-to-voice mappings live here.
+Research-based emotional prosody mapping
 """
 
-# ── HuggingFace model ──────────────────────────────────────────────────────────
-# j-hartmann/emotion-english-distilroberta-base outputs 7 labels:
-#   anger, disgust, fear, joy, neutral, sadness, surprise
+# ── HuggingFace model ─────────────────────────────────────────────
 EMOTION_MODEL_NAME = "j-hartmann/emotion-english-distilroberta-base"
 
-# ── Emotion label normalisation ────────────────────────────────────────────────
-# Maps raw model labels → canonical app labels
+# ── Emotion label normalisation ───────────────────────────────────
 EMOTION_LABEL_MAP = {
     "joy":      "joy",
     "neutral":  "neutral",
@@ -21,15 +18,15 @@ EMOTION_LABEL_MAP = {
 }
 
 # ── Voice parameter mapping ────────────────────────────────────────────────────
-# pitch  : SSML prosody value  e.g. "+20%", "-15%", "default"
-# rate   : SSML prosody value  e.g. "fast", "slow", "medium"
+# pitch  : Numeric base value in percentage (scaled by confidence)
+# rate   : Numeric base value in percentage (scaled by confidence)
 # volume : SSML prosody value  e.g. "loud", "soft", "medium"
 # pause  : milliseconds inserted after the first sentence (adds drama)
 # label  : human-readable emotion name shown in the UI
 EMOTION_VOICE_MAP = {
     "joy": {
-        "pitch":  "+20%",
-        "rate":   "fast",
+        "pitch":  10.0,
+        "rate":   8.0,
         "volume": "medium",
         "pause":  0,
         "label":  "Joy / Positive",
@@ -37,8 +34,8 @@ EMOTION_VOICE_MAP = {
         "color":  "#f9c74f",
     },
     "neutral": {
-        "pitch":  "default",
-        "rate":   "medium",
+        "pitch":  0.0,
+        "rate":   0.0,
         "volume": "medium",
         "pause":  0,
         "label":  "Neutral",
@@ -46,17 +43,17 @@ EMOTION_VOICE_MAP = {
         "color":  "#90e0ef",
     },
     "frustrated": {
-        "pitch":  "-15%",
-        "rate":   "slow",
+        "pitch":  12.0,
+        "rate":   8.0,
         "volume": "loud",
-        "pause":  300,
+        "pause":  200,
         "label":  "Frustrated / Negative",
         "emoji":  "😤",
         "color":  "#ef233c",
     },
     "surprised": {
-        "pitch":  "+30%",
-        "rate":   "fast",
+        "pitch":  15.0,
+        "rate":   10.0,
         "volume": "loud",
         "pause":  0,
         "label":  "Surprised",
@@ -64,17 +61,17 @@ EMOTION_VOICE_MAP = {
         "color":  "#f77f00",
     },
     "concerned": {
-        "pitch":  "-10%",
-        "rate":   "slow",
+        "pitch":  -8.0,
+        "rate":   -10.0,
         "volume": "soft",
-        "pause":  200,
+        "pause":  250,
         "label":  "Concerned",
         "emoji":  "😟",
         "color":  "#6a4c93",
     },
     "inquisitive": {
-        "pitch":  "+10%",
-        "rate":   "medium",
+        "pitch":  6.0,
+        "rate":   3.0,
         "volume": "medium",
         "pause":  0,
         "label":  "Inquisitive",
@@ -83,15 +80,15 @@ EMOTION_VOICE_MAP = {
     },
 }
 
-# ── Audio file paths (relative to static/) ────────────────────────────────────
+# ── Audio file paths ──────────────────────────────────────────────
 AUDIO_BEFORE_FILENAME = "audio/audio-before.mp3"
 AUDIO_AFTER_FILENAME  = "audio/audio-after.mp3"
 
-# ── gTTS settings ─────────────────────────────────────────────────────────────
+# ── gTTS settings ─────────────────────────────────────────────────
 GTTS_LANG = "en"
-GTTS_TLD  = "com"   # accent: com=US, co.uk=British, com.au=Australian
+GTTS_TLD  = "com"
 
-# ── Flask settings ────────────────────────────────────────────────────────────
+# ── Flask settings ────────────────────────────────────────────────
 DEBUG = True
 HOST  = "127.0.0.1"
 PORT  = 5000

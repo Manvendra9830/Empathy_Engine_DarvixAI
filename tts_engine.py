@@ -66,8 +66,7 @@ except ImportError:
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-RATE_MAP   = {"fast": 1.25, "medium": 1.00, "slow": 0.80}
-VOLUME_MAP = {"loud": 5,    "medium": 0,    "soft": -5}
+VOLUME_MAP = {"loud": 5, "medium": 0, "soft": -5}
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -139,14 +138,14 @@ def _apply_modulation(src_path: str, params: dict, dst_path: str) -> None:
         audio = audio + db_change
 
     # ── Rate / tempo ───────────────────────────────────────────────────────────
-    rate_key   = params.get("rate", "medium")
-    rate_factor = RATE_MAP.get(rate_key, 1.0)
+    rate_str = params.get("rate", "0.0%")
+    rate_factor = _rate_str_to_factor(rate_str)
     if rate_factor != 1.0:
         audio = _change_speed(audio, rate_factor)
 
     # ── Pitch shift ────────────────────────────────────────────────────────────
-    pitch_str = params.get("pitch", "default")
-    if pitch_str != "default":
+    pitch_str = params.get("pitch", "0.0%")
+    if pitch_str != "default" and pitch_str != "0.0%":
         semitones = _pitch_str_to_semitones(pitch_str)
         if semitones != 0:
             audio = _shift_pitch(audio, semitones)
@@ -191,13 +190,31 @@ def _shift_pitch(audio: "AudioSegment", semitones: float) -> "AudioSegment":
 
 def _pitch_str_to_semitones(pitch_str: str) -> float:
     """
-    Convert SSML-style pitch string (e.g. "+20%", "-15%") to semitones.
+    Convert SSML-style pitch string (e.g. "+6.5%", "-5.0%") to semitones.
 
     We use the approximation:  semitones ≈ percentage / 6
     which keeps small percentage changes perceptible but not extreme.
     """
     try:
+        # Handle "default" or other non-numeric strings
+        if "%" not in pitch_str:
+            return 0.0
         pct = float(pitch_str.replace("%", ""))
         return pct / 6.0
     except ValueError:
         return 0.0
+
+
+def _rate_str_to_factor(rate_str: str) -> float:
+    """
+    Convert SSML-style rate percentage string (e.g. "+10%", "-15%") to a 
+    playback speed factor (e.g. 1.10, 0.85).
+    """
+    try:
+        # Handle "medium" or other non-numeric strings
+        if "%" not in rate_str:
+            return 1.0
+        pct = float(rate_str.replace("%", ""))
+        return 1.0 + (pct / 100.0)
+    except ValueError:
+        return 1.0
